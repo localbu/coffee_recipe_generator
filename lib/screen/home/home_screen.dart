@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:schedule_generator/network/gemini_service.dart';
 import 'package:shimmer/shimmer.dart';
@@ -16,11 +15,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _coffeeController = TextEditingController();
   String? errorMessage;
 
-  List bahan = [];
-  List langkah = [];
+  List<String> bahan = [];
+  List<String> langkah = [];
 
   void addTask() {
     if (_coffeeController.text.isNotEmpty) {
+      _coffees.clear;
       setState(() {
         _coffees.add({
           'nama_kopi': _coffeeController.text,
@@ -28,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
           'langkah': '',
         });
         _coffeeController.clear();
-        print(_coffees);
       });
     }
   }
@@ -38,8 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       errorMessage = null;
     });
+
     try {
       final result = await GeminiServices.generateSchedule(_coffees);
+
       if (result.containsKey('error')) {
         setState(() {
           _isLoading = false;
@@ -49,10 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         return;
       }
-      setState(() {
-        bahan = List.from(result['bahan']);
-        langkah = List.from(result['langkah']);
 
+      setState(() {
+        bahan = List<String>.from(result['bahan'] ?? []);
+        langkah = List<String>.from(result['langkah'] ?? []);
         _isLoading = false;
       });
     } catch (e) {
@@ -60,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
         bahan.clear();
         langkah.clear();
-        errorMessage = 'failed to generate schedule\n$e';
+        errorMessage = 'Gagal menghasilkan resep\n$e';
       });
     }
   }
@@ -68,243 +69,190 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Schedule Generator'),
-      ),
+      appBar: AppBar(title: const Text('Schedule Generator')),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: _coffeeController,
-                decoration: InputDecoration(
-                  hintText: 'Nama Kopi',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _coffeeController,
+              decoration: InputDecoration(
+                hintText: 'Nama Kopi',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: addTask,
-                label: Text(
-                  'Tambahkan Nama Kopi',
-                  style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: addTask,
+              label: const Text(
+                'Tambahkan Nama Kopi',
+                style: TextStyle(color: Colors.white),
+              ),
+              icon: const Icon(Icons.add, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                icon: Icon(Icons.add, color: Colors.white),
+                backgroundColor: Colors.blueAccent,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_coffees.isNotEmpty)
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : generateSchedule,
+                label: Text(
+                  _isLoading ? 'Generating ...' : 'Generate Recipe',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                icon: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 1,
+                        ),
+                      )
+                    : const Icon(Icons.schedule, color: Colors.white),
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Colors.cyan,
                 ),
               ),
-              SizedBox(height: 16),
-              if (_coffees.isNotEmpty)
-                SizedBox(
-                  height: 150,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _coffees.length,
-                    itemBuilder: (context, index) {
-                      var coffee = _coffees[index];
-                      return Card(
-                        child: ListTile(
-                          leading: Icon(FontAwesomeIcons.listCheck),
-                          title: Text(coffee['nama_kopi']),
-                          trailing: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _coffees.removeAt(index);
-                              });
+            const SizedBox(height: 10),
+            if (!_isLoading && errorMessage != null)
+              Card(
+                color: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          errorMessage!,
+                          style: GoogleFonts.poppins(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (_isLoading)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Shimmer.fromColors(
+                      baseColor: Colors.grey[300]!,
+                      highlightColor: Colors.grey[100]!,
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const SizedBox(height: 40, width: 300),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (!_isLoading && (bahan.isNotEmpty || langkah.isNotEmpty))
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    color: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Bahan",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (bahan.isEmpty)
+                            Text(
+                              'Tidak ada bahan',
+                              style: GoogleFonts.poppins(color: Colors.white),
+                            ),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: bahan.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4.0),
+                                child: Text(
+                                  '${index + 1}. ${bahan[index]}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              );
                             },
-                            icon: Icon(Icons.delete),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Langkah Pembuatan',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  ListView.separated(
+                    separatorBuilder: (BuildContext context, int index) =>
+                        SizedBox(
+                      height: 10,
+                    ),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: langkah.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                  offset: Offset(5, 5),
+                                  color: const Color(0x6B000000),
+                                  blurRadius: 10)
+                            ]),
+                        child: ListTile(
+                          leading: Text('${index + 1}'),
+                          title: Text(
+                            langkah[index],
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       );
                     },
                   ),
-                ),
-              if (_coffees.isNotEmpty)
-                ElevatedButton.icon(
-                  onPressed: generateSchedule,
-                  label: Text(
-                    _isLoading ? 'Generating ...' : 'Generate recipe',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  icon: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 1,
-                          ),
-                        )
-                      : Icon(Icons.schedule, color: Colors.white),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    backgroundColor: Colors.cyan,
-                  ),
-                ),
-              SizedBox(height: 10),
-              if (!_isLoading &&
-                  errorMessage != null &&
-                  errorMessage!.isNotEmpty)
-                Card(
-                  color: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.error,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            errorMessage!,
-                            style: GoogleFonts.poppins(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (_isLoading)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: SizedBox(height: 10, width: 300),
-                      ),
-                    ),
-                    Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: SizedBox(height: 40, width: 200),
-                      ),
-                    ),
-                    Shimmer.fromColors(
-                      baseColor: Colors.grey[300]!,
-                      highlightColor: Colors.grey[100]!,
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        child: SizedBox(height: 100, width: 300),
-                      ),
-                    ),
-                  ],
-                ),
-              // Display generated schedule
-              if (!_isLoading && (langkah.isNotEmpty || bahan.isNotEmpty))
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Card(
-                      color: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Bahan",
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(
-                              height: 8,
-                            ),
-                            if (bahan.isEmpty)
-                              Text(
-                                'Tidak Ada Tugas',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: bahan.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  return Column(
-                                    children: [Text('${bahan[index]}')],
-                                  );
-                                })
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 8,
-                    ),
-                    Card(
-                      color: Colors.yellowAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Langkah",
-                              style: GoogleFonts.poppins(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(
-                              height: 8,
-                            ),
-                            if (langkah.isEmpty)
-                              Text(
-                                'Tidak Ada langkah',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ListView.builder(
-                              itemCount: langkah.length,
-                              shrinkWrap: true,
-                                itemBuilder: (BuildContext context, int index) {
-                              return Column(
-                                children: [Text('${langkah[index]}')],
-                              );
-                            })
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 8,
-                    ),
-                  ],
-                )
-            ],
-          ),
+                ],
+              ),
+          ],
         ),
       ),
     );
