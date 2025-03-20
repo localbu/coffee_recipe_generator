@@ -4,7 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 class GeminiServices {
   static const String apiKey = 'AIzaSyDXGcb28Uf3n55GGiSz8vVK_HlwFluh1OA';
 
-  static Future<Map<String, dynamic>> generateSchedule(
+  static Future<Map<String, dynamic>> generateCofee(
       List<Map<String, dynamic>> tasks) async {
     final prompt = _buildPrompt(tasks);
     final model = GenerativeModel(
