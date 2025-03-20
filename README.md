@@ -71,7 +71,7 @@ dependencies:
 
 ## 🎨 Tampilan Aplikasi
 
-![Mocups](https://via.placeholder.com/150)
+![Mocups](coffe.png)
 
 
 ## ✨ Kontribusi
