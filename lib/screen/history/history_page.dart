@@ -109,6 +109,9 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('History'),
+      ),
       body: SafeArea(
         child: _coffees.isEmpty
             ? Center(

@@ -54,7 +54,7 @@ class GeminiServices {
       // Attempt direct parsing (if API response is already JSON)
       return jsonDecode(responseText);
     } catch (e) {
-      return {"error": "Failed to generate recipe: $e"};
+      return {"error": "Failed to generate recipe"};
     }
   }
 

@@ -47,7 +47,7 @@ class GeminiSuggestion {
       // Jika langsung berupa JSON
       return jsonDecode(responseText);
     } catch (e) {
-      return {"error": "Failed to generate recipe: $e"};
+      return {"error": "Failed to generate recipe"};
     }
   }
 }
